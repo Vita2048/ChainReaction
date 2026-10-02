@@ -1,0 +1,25 @@
+node_modules/
+tools/
+*.env
+.hyperframes/
+.thumbnails/
+.waveform-cache/
+
+# Render outputs (final MP4s) — rebuild with `npm run render`
+*.mp4
+renders/
+
+# QA snapshots / contact sheets (regenerable, ~12 MB)
+snapshots/
+
+# Logs
+*.log
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+*.swp
+
+# NOTE: sounds are kept — assets/audio/*.mp3 + *.wav are essential SFX
+# (roll, domino clicks, gong) and are NOT ignored by any rule above.
