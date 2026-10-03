@@ -69,6 +69,29 @@ const PX=10.75, PY=.35, PZ=1.2, L=1.65, HR=.22, GX=12.1;
 const INITIAL=Math.PI;
 const HIT=Math.acos((GX-.0375-HR-.005-PX)/L);
 const GY=PY+L*Math.sin(HIT);
+// The last tile drives the paddle through actual face/corner contact in XY.
+// Both rotate about Z; the paddle is mounted directly on the extended axle.
+const TRIP={x:9.45,y:.18,top:1.04,half:.05};
+function paddleAngle(theta){
+  const base=(TRIP.x-17*.54)*Math.cos(theta)-(TRIP.y-.065)*Math.sin(theta);
+  return Math.max(0,Math.min(Math.PI/2,theta+Math.asin(Math.max(-1,Math.min(1,(.05-base)/Math.hypot(TRIP.top,TRIP.half))))+Math.atan2(TRIP.half,TRIP.top)));
+}
+let lower=0,upper=Math.PI/2;
+for(let i=0;i<60;i++){const mid=(lower+upper)/2;if(paddleAngle(mid)<Math.PI/2)lower=mid;else upper=mid;}
+const LAST_REST=(lower+upper)/2;
+function timeAtPaddle(angle){
+  for(let i=1;i<SIM.frames.length;i++){
+    const a=paddleAngle(SIM.frames[i-1][17]),b=paddleAngle(SIM.frames[i][17]);
+    if(b>angle&&a<=angle)return (i-1+(angle-a)/(b-a))/SIM.fps;
+  }
+  throw new Error('Last domino never reaches the trip paddle');
+}
+const swingDuration=SIM.strike-SIM.release;
+SIM.trigger=timeAtPaddle(0);
+SIM.release=timeAtPaddle(.40);
+SIM.strike=SIM.release+swingDuration;
+document.querySelector('[data-t="7.3"]').dataset.t=SIM.trigger+.04;
+document.querySelector('[data-t="7.74"]').dataset.t=SIM.strike;
 function strikerAngle(t,release,strike){
   let th=INITIAL;
   if(t>release&&t<strike){const u=(t-release)/(strike-release);th=INITIAL+(HIT-INITIAL)*u*u;}
@@ -155,21 +178,12 @@ for(const sign of [-1,1]) rod([.13,0,sign*.12],[.44,0,sign*.12],.022,brass,strik
 // edge while cocked; it swings free with the striker after release.
 box(.10,.09,.35,brass,1.30,-.02,.155,striker,.03);
 
-const latch=new T.Group(); latch.position.set(9.45,.18,PZ); scene.add(latch);
-// Axle extended toward the domino lane (surface stays clear of it: dominoes
-// stay within z +/-0.37; axle surface now starts at z 0.505).
-// Axle extended further toward the domino lane (surface stays clear of it:
-// dominoes stay within z +/-0.37; axle surface now starts at z 0.405).
-rod([0,0,-.75],[0,0,.26],.045,chrome,latch);
-mesh(new T.SphereGeometry(.045,16,12),chrome,0,0,-.75,latch);
-// Metallic X-bar: chrome extension from the axle toward the tile pivots; the
-// paddle bottom rests right on its far end (direct mount, no link).
-rod([0,0,-.65],[-.30,0,-.65],.035,chrome,latch);
-mesh(new T.SphereGeometry(.04,16,12),chrome,0,0,-.65,latch);
-// Yellow trip paddle shifted toward the tile pivots (world x 9.10-9.20) so the
-// falling tile passes a hair beside it; it sits directly on the X-bar end, and
-// a brass link is no longer needed.
-box(.10,1.0,.26,brass,-.30,.54,-.65,latch,.035);
+const latch=new T.Group(); latch.position.set(TRIP.x,TRIP.y,PZ); scene.add(latch);
+// One continuous axle reaches past the far side of the last blue domino.
+rod([0,0,-PZ-.50],[0,0,.26],.045,chrome,latch);
+mesh(new T.SphereGeometry(.045,16,12),chrome,0,0,-PZ-.50,latch);
+// Direct axle mount, centered in the domino lane; no sideways crossbar.
+box(.10,1.08,.26,brass,0,.50,-PZ,latch,.006);
 // Metallic release hook: one continuous ROUND bar (chrome), an extension of the
 // latch axle — low run near the base, bending up into a vertical post beside the
 // striker, fingertip over the top edge of the yellow catch bar. Domino paddle
@@ -200,8 +214,8 @@ function poseAt(t){
   if(t<=3.3){const u=clamp(Math.pow(t/3.3,1.25));ball.position.copy(track.getPointAt(u));ball.rotation.z=-u*trackLen/.38;}
   else{const q=t-3.3;ball.position.set(-.46-Math.min(.9,q*.35),Math.max(.385,1.05-1.6*q*q),Math.min(1.25,q*.37));ball.rotation.z=-trackLen/.38+q;}
   const f=t*SIM.fps,a=Math.min(SIM.frames.length-1,Math.floor(f)),b=Math.min(a+1,SIM.frames.length-1),fr=f-a;
-  dominoes.forEach((p,i)=>{p.rotation.z=-(SIM.frames[a][i]+(SIM.frames[b][i]-SIM.frames[a][i])*fr);});
-  latch.rotation.z=-.48*smooth((t-SIM.trigger)/.13);
+  dominoes.forEach((p,i)=>{const angle=SIM.frames[a][i]+(SIM.frames[b][i]-SIM.frames[a][i])*fr;p.rotation.z=-Math.min(angle,i===17?LAST_REST:Math.PI/2);});
+  latch.rotation.z=-paddleAngle(-dominoes[17].rotation.z);
   striker.rotation.z=strikerAngle(t,SIM.release,SIM.strike);
   const q=Math.max(0,t-SIM.strike), impact=t>=SIM.strike?Math.exp(-q*2.8):0;
   gongMat.emissiveIntensity=impact*.8; flare.intensity=impact*24;
