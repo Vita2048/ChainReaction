@@ -215,7 +215,6 @@ mesh(new T.SphereGeometry(.27,32,20),brass,0,0,.06,gong).scale.z=.35;
 for(let i=0;i<6;i++){const r=.34+i*.12;for(const side of [-1,1]) mesh(new T.TorusGeometry(r,.009,8,100),i===5?cyan:brass,0,0,side*.047,gong);}
 for(const z of [PZ-1.12,PZ+1.12]){rod([GX,0,z],[GX,3.0,z],.07,brass);box(.30,.12,.30,black,GX,.05,z);}
 rod([GX,3.0,PZ-1.15],[GX,3.0,PZ+1.15],.075,brass);
-for(const z of [PZ-.65,PZ+.65]){rod([GX,3.0,z],[GX,GY+.78,z],.035,edge);const sh=mesh(new T.TorusGeometry(.072,.019,8,24),chrome,GX,GY+.78,z);sh.rotation.y=Math.PI/2;}
 const flare=new T.PointLight('#ffc366',0,7); flare.position.set(GX+.6,GY+.4,PZ+.4); scene.add(flare);
 const waves=[]; for(let i=0;i<3;i++){const m=new T.MeshBasicMaterial({color:'#ffc76c',transparent:true,opacity:0,depthWrite:false});const o=mesh(new T.TorusGeometry(1,.009,6,100),m,GX+.08,GY,PZ);o.rotation.y=Math.PI/2;waves.push(o);}
 
@@ -223,13 +222,14 @@ const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x)), smooth=x=>{x=clamp(x);return
 // Act II is a seekable mechanical choreography. Every pose is derived from
 // absolute time, including released objects, so rewind never leaves stale state.
 const DURATION=34;
-const E={gate:SIM.strike+.25,roll:SIM.strike+.65,cup:15,tip:16.2,launch:16.85,land:18.1,paddle:18.9,pendulum:19.2};
+const E={gate:SIM.strike,roll:SIM.strike+.45,cup:15,tip:16.2,launch:16.85,land:18.1,paddle:18.9,pendulum:19.2};
 E.wall=E.pendulum+2.1*Math.acos(-Math.asin(.15/3.2)/.8)/Math.PI;
 E.domino=E.wall+.7;
 const vec=a=>new T.Vector3(...a);
 function link(a,b,r=.025,m=chrome){return rod(a,b,r,m);}
 function moveLink(o,a,b){const p=vec(a),q=vec(b),d=q.clone().sub(p);o.position.copy(p.add(q).multiplyScalar(.5));o.scale.y=d.length()/o.geometry.parameters.height;o.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),d.normalize());}
 function bearing(x,y,z){for(const s of [-1,1])box(.25,y,.17,edge,x,y/2,z+s*.35);rod([x,y,z-.45],[x,y,z+.45],.075,chrome);}
+const _zAxis=new T.Vector3(0,0,1),_qz=new T.Quaternion(),_qy90=new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),Math.PI/2);
 function caption(text,x,y,z,width=2.6){
   const c=document.createElement('canvas');c.width=768;c.height=128;
   const ctx=c.getContext('2d');ctx.fillStyle='#111c2b';ctx.fillRect(0,0,768,128);ctx.strokeStyle='#b49154';ctx.lineWidth=4;ctx.strokeRect(4,4,760,120);ctx.fillStyle='#ffe4ad';ctx.font='bold 36px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,384,64);
@@ -243,22 +243,28 @@ spot('#ffe6b4',420,[21,11,5],[22,1,0]);spot('#8bbcff',230,[29,8,-5],[25,1,0]);
 caption('02 / SPIRAL',15.3,.35,3.8);caption('03 / TRANSFER',19,.35,-3.15);
 caption('04 / IMPACT',26,.35,-3.15);caption('05 / CHAIN COMPLETE',19,.35,5.45,3.4);
 
-// Gong strike triggers the gate drop: the gong tilts, gate axle and drop-rod
-// lifter fall together, the bar releases the ball into the spiral.
-const gongHanger=new T.Group();gongHanger.position.set(GX,GY+.78,PZ);scene.add(gongHanger);gongHanger.add(gong);gong.position.set(0,-.78,0);
-const gongTab=box(.27,.10,.14,brass,.14,-.84,0,gongHanger,.025);
+// One actual hinge transform drives the gong and its continuous bent release bar.
+const gongHanger=new T.Group();gongHanger.position.set(GX+.32,GY-.06,PZ);scene.add(gongHanger);gongHanger.add(gong);gong.position.set(-.32,.06,0);
+const gongTab=box(.35,.10,.14,brass,-.175,0,0,gongHanger,.025);
 bearing(GX+.32,GY-.06,PZ);
-const gate=new T.Group();gate.position.set(13.6,4.66,.90);gate.rotation.y=Math.PI/2;scene.add(gate);
-rod([0,-.26,-.38],[0,-.26,.38],.045,chrome,gate);
-rod([13.22,.02,.90],[13.22,4.34,.90],.065,edge);
-// Drop-rod lifter pinned to the gong hinge: vertical chrome bar down to hinge
-// height, foot link from the hinge pin to the bar bottom. Gong tilts left, the
-// bar drops straight and frees the ball (green arrows).
-const lifter=new T.Group();scene.add(lifter);
+rod([13.22,.02,1.30],[13.22,4.34,1.30],.065,edge);
+// The under-rail return bends upward in front of the waiting ball. No crossbar.
+// Keep the authored coordinates, expressed relative to the common hinge.
+const lifter=new T.Group();gongHanger.add(lifter);lifter.position.copy(gongHanger.position).negate();
 rod([13.34,1.53,.90],[13.34,4.36,.90],.032,chrome,lifter);
+rod([GX+.32,GY-.06,.90],[13.34,1.53,.90],.026,chrome,lifter);
+const stopRadius=.032,stopZ=1.2-.22-stopRadius;
+const stopCurve=new T.CurvePath();
+stopCurve.add(new T.QuadraticBezierCurve3(vec([13.34,4.36,.90]),vec([13.34,4.24,.90]),vec([13.44,4.24,stopZ])));
+stopCurve.add(new T.LineCurve3(vec([13.44,4.24,stopZ]),vec([13.54,4.24,stopZ])));
+stopCurve.add(new T.QuadraticBezierCurve3(vec([13.54,4.24,stopZ]),vec([13.60,4.24,stopZ]),vec([13.60,4.30,stopZ])));
+stopCurve.add(new T.LineCurve3(vec([13.60,4.30,stopZ]),vec([13.60,4.60,stopZ])));
+mesh(new T.TubeGeometry(stopCurve,64,stopRadius,12,false),chrome,0,0,0,lifter);
+mesh(new T.SphereGeometry(stopRadius,16,12),chrome,13.60,4.60,stopZ,lifter);
 mesh(new T.SphereGeometry(.032,16,12),chrome,13.34,4.36,.90,lifter);
 mesh(new T.SphereGeometry(.030,16,12),chrome,13.34,1.53,.90,lifter);
-const hingeLink=link([12.42,1.531,.90],[13.34,1.53,.90],.026,chrome);
+mesh(new T.SphereGeometry(.028,16,12),chrome,12.42,1.531,.90,lifter);
+const linkEye=mesh(new T.TorusGeometry(.11,.028,10,28),chrome,12.42,1.531,.90,lifter);
 
 // Two descending turns plus a low exit into the seesaw cup.
 const spiralPoints=[];
@@ -392,10 +398,9 @@ mesh(new T.CylinderGeometry(.12,.32,.42,32,1,true),funnelMat,0,-.23,0,bell);
 rod([0,0,0],[0,-.37,0],.025,chrome,bell);mesh(new T.SphereGeometry(.07,16,12),chrome,0,-.38,0,bell);
 
 function poseExtension(t){
-  const g=smooth((t-SIM.strike)/.18)*(1-smooth((t-SIM.strike-.22)/.7));
-  gongHanger.rotation.z=-.09*g;
-  const gateOpen=smooth((t-E.gate)/.35);gate.position.y=4.66-.45*gateOpen;lifter.position.y=-.45*gateOpen;
-  moveLink(hingeLink,[12.42,1.531,.90],[13.34,1.53+lifter.position.y,.90]);
+  // Impact pushes the gong top toward the spiral; the same clockwise turn
+  // lowers the return and stop before the waiting ball begins its descent.
+  gongHanger.rotation.z=-.2618*smooth((t-E.gate)/(E.roll-E.gate));
   seesaw.rotation.z=SEESAW_REST*smooth((t-E.cup)/(E.tip-E.cup));
   spiralBall.rotation.z=-clamp((t-E.roll)/(E.cup-E.roll))*spiralPath.getLength()/.22;
   if(t<E.cup){const u=clamp((t-E.roll)/(E.cup-E.roll));spiralBall.position.copy(spiralPath.getPointAt(u*u*.4+u*.6));}
