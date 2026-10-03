@@ -18,7 +18,7 @@ try{
   browser=await puppeteer.launch({executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',headless:true,args:['--no-sandbox']});
   const page=await browser.newPage();await page.setViewport({width:1100,height:1000});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(`http://127.0.0.1:${server.address().port}/chain-reaction-viewer.html`);
+  await page.goto(`http://127.0.0.1:${server.address().port}/docs/index.html`);
   await page.waitForFunction(()=>window.inspectGong);
   const result=await page.evaluate(()=>{
     const v=window.inspectGong,point=()=>v.stopCurve.getPoint(1).applyMatrix4(v.lifter.matrixWorld);

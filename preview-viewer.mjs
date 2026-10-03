@@ -9,7 +9,7 @@ const mime={'.html':'text/html','.js':'text/javascript','.mp3':'audio/mpeg','.wa
 http.createServer((req,res)=>{
   let pathname;
   try{pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);}catch{res.writeHead(400);res.end();return;}
-  const file=path.resolve(root,'.'+(pathname==='/'?'/chain-reaction-viewer.html':pathname));
+  const file=path.resolve(root,'.'+(pathname==='/'?'/docs/index.html':pathname));
   if(!file.startsWith(root+path.sep)||!fs.existsSync(file)||!fs.statSync(file).isFile()){res.writeHead(404);res.end();return;}
   let data=fs.readFileSync(file);
   if(file.endsWith('.html'))data=Buffer.from(data.toString().replaceAll('https://unpkg.com/three@0.180.0/','/node_modules/three/'));
@@ -22,4 +22,4 @@ http.createServer((req,res)=>{
     res.writeHead(206,{'Content-Range':`bytes ${start}-${end}/${data.length}`,'Content-Length':end-start+1});res.end(data.subarray(start,end+1));return;
   }
   res.setHeader('Content-Length',data.length);res.end(data);
-}).listen(8822,'127.0.0.1',()=>console.log('Standalone viewer: http://127.0.0.1:8822/chain-reaction-viewer.html'));
+}).listen(8822,'127.0.0.1',()=>console.log('Standalone viewer: http://127.0.0.1:8822/docs/index.html'));

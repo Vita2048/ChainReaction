@@ -21,7 +21,7 @@ let browser;
 try{
   browser=await puppeteer.launch({executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',headless:true,args:['--no-sandbox']});
   const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(`http://127.0.0.1:${server.address().port}/chain-reaction-viewer.html`);
+  await page.goto(`http://127.0.0.1:${server.address().port}/docs/index.html`);
   await page.waitForFunction(()=>window.inspectAudio?.audioClips.every(c=>c.media.readyState>=2));
   await page.click('#sound');
   const state=()=>page.evaluate(()=>{
