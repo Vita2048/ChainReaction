@@ -1,0 +1,47 @@
+name: Deploy viewer to GitHub Pages
+
+# Single copy of truth for audio lives in assets/audio/ at the repo root.
+# This workflow assembles the published site at deploy time
+# (docs/index.html -> site root + assets/audio/), so no duplicated
+# audio files are ever committed to docs/.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "assets/audio/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          mkdir -p _site/assets
+          cp docs/index.html _site/index.html
+          cp -r assets/audio _site/assets/audio
+          touch _site/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

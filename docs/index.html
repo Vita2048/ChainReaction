@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Chain Reaction — 3D Model Viewer</title>
+<link rel="icon" href="data:,">
 <style>
   html,body{margin:0;height:100%;overflow:hidden;background:#080d19;color:#e8eef6;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
   #app{position:fixed;inset:0}
@@ -35,7 +36,6 @@
 <div id="hud">
   <h1>Chain Reaction — 3D model</h1>
   <p>Drag to <b>rotate</b> &middot; wheel to <b>zoom</b> &middot; right-drag to <b>pan</b>.</p>
-  <p>Rails &rarr; dominoes &rarr; gong &rarr; spiral &rarr; seesaw &rarr; catapult &rarr; pendulum &rarr; finale.</p>
   <p id="stage" style="color:#ffd98a">01 / Ball release</p>
 </div>
 <div id="presets">
@@ -486,10 +486,35 @@ addEventListener('resize',resize); resize();
 let soundContext=null,soundOn=false;
 // Reuse the composition's recordings, clocked to this viewer's corrected events.
 // Each cue owns a media element so neighboring domino impacts can overlap.
+// Single copy of truth: assets/audio/ at the repo root, mirrored to the
+// deployed site by the Pages workflow. Branch-mode Pages only publishes
+// docs/, so repo-root audio is unreachable there by relative URL — on
+// *.github.io the files are instead served from the repo itself through
+// jsDelivr (proper audio content-type, no CORS issues for <audio> playback).
+// The primary base is picked deterministically from the page URL, so the
+// common case for every layout loads with zero failed requests; the error
+// handler below only cycles the remaining bases as a safety net.
+const CDN_AUDIO='https://cdn.jsdelivr.net/gh/Vita2048/ChainReaction@main/assets/audio/';
+function primaryAudioBase(){
+  if(location.protocol==='file:')return '../assets/audio/';
+  if(location.hostname.endsWith('.github.io'))return CDN_AUDIO;
+  return location.pathname.includes('/docs/')?'../assets/audio/':'assets/audio/';
+}
+const _PRIMARY_AUDIO_BASE=primaryAudioBase();
+const AUDIO_BASES=[_PRIMARY_AUDIO_BASE,...['assets/audio/','../assets/audio/',CDN_AUDIO].filter(b=>b!==_PRIMARY_AUDIO_BASE)];
 const audioClips=[];
 function audioClip(file,start,duration,volume,{offset=0,loop=false,fadeIn=0,fadeOut=.025}={}){
-  const media=new Audio('assets/audio/'+file);media.preload='auto';media.loop=loop;
-  const clip={media,start,duration,volume,offset,fadeIn,fadeOut,active:false,pending:false};
+  const media=new Audio(AUDIO_BASES[0]+file);media.preload='auto';media.loop=loop;
+  const clip={media,start,duration,volume,offset,fadeIn,fadeOut,active:false,pending:false,hasError:false};
+  media.addEventListener('error',()=>{
+    const tried=Number(media.dataset.audioBase||0);
+    if(tried+1<AUDIO_BASES.length){
+      media.dataset.audioBase=String(tried+1);clip.hasError=false;media.src=AUDIO_BASES[tried+1]+file;
+      try{media.load();}catch(_retryError){}
+      return;
+    }
+    clip.hasError=true;const btn=document.querySelector('#sound');if(btn&&soundOn)btn.title='Missing audio file: '+file+' (tried '+AUDIO_BASES.join(', ')+')';
+  });
   audioClips.push(clip);return clip;
 }
 audioClip('roll.mp3',0,3.3,.52,{fadeIn:.18,fadeOut:.35});
@@ -503,24 +528,64 @@ function syncAudio(){
     const {media}=clip,elapsed=time-clip.start;
     const active=soundOn&&playing&&elapsed>=0&&elapsed<clip.duration;
     if(!active){if(!media.paused)media.pause();clip.active=false;continue;}
+    if(clip.hasError){clip.active=false;continue;}
     let target=clip.offset+elapsed;
     if(media.loop&&Number.isFinite(media.duration))target%=media.duration;
-    if(media.readyState>=1&&(!clip.active||Math.abs(media.currentTime-target)>.12))media.currentTime=target;
+    if(media.readyState>=1&&(!clip.active||Math.abs(media.currentTime-target)>.12))try{media.currentTime=target;}catch(_seekError){}
     media.playbackRate=speed;
     media.volume=clip.volume*(clip.fadeIn?clamp(elapsed/clip.fadeIn):1)*(clip.fadeOut?clamp((clip.duration-elapsed)/clip.fadeOut):1);
     if(media.paused&&!clip.pending){
       clip.pending=true;
-      media.play().catch(error=>{
-        if(error.name!=='AbortError'){soundOn=false;document.querySelector('#sound').textContent='Sound off';document.querySelector('#sound').title='Audio could not play: '+error.message;}
-      }).finally(()=>clip.pending=false);
+      const playPromise=media.play();
+      if(playPromise&&typeof playPromise.catch==='function')playPromise.catch(error=>{
+        // Autoplay-policy blocks and seek aborts are transient: keep the toggle
+        // on and retry on a later frame instead of switching sound back off.
+        if(error&&(error.name==='AbortError'||error.name==='NotAllowedError'))return;
+        // A rejected play() while nothing is loaded yet just means the base
+        // fallback (driven by the media 'error' event) hasn't finished: don't
+        // condemn the clip while untried bases remain.
+        if(media.readyState<1&&Number(media.dataset.audioBase||0)+1<AUDIO_BASES.length)return;
+        clip.hasError=true;const btn=document.querySelector('#sound');if(btn)btn.title='Audio could not play ('+clip.media.src.split('/').pop()+'): '+error.message;
+      }).finally(()=>{clip.pending=false;});
+      else clip.pending=false;
     }
     clip.active=true;
   }
 }
+let blipCount=0;
+function blip(){
+  // Instant audible confirmation that sound is on — scheduled cues may be
+  // seconds away (the timeline has genuine silent stretches, e.g. after the
+  // bell), so the toggle must answer immediately instead.
+  if(!soundContext)return;
+  try{
+    const now=soundContext.currentTime,o=soundContext.createOscillator(),g=soundContext.createGain();
+    o.frequency.value=660;g.gain.setValueAtTime(.08,now);g.gain.exponentialRampToValueAtTime(.0001,now+.15);
+    o.connect(g).connect(soundContext.destination);o.start(now);o.stop(now+.16);blipCount++;
+  }catch(_blipError){}
+}
 document.querySelector('#sound').addEventListener('click',async()=>{
-  soundOn=!soundOn;syncAudio();if(soundOn){soundContext??=new AudioContext();await soundContext.resume();}
-  document.querySelector('#sound').textContent=soundOn?'Sound on':'Sound off';
+  soundOn=!soundOn;
+  const btn=document.querySelector('#sound');
+  if(soundOn){
+    try{soundContext??=new AudioContext();await soundContext.resume();}catch(contextError){if(btn)btn.title='WebAudio unavailable: '+contextError.message;}
+    // Only (re)load clips that never got data or previously failed — calling
+    // load() on every clip would discard already-buffered audio and add
+    // seconds of re-download delay (notably the 882 KB gong).
+    for(const clip of audioClips){if(clip.hasError||clip.media.readyState===0){clip.hasError=false;try{clip.media.load();}catch(_loadError){}}}
+    blip();
+  }else{
+    for(const clip of audioClips){if(!clip.media.paused)clip.media.pause();clip.active=false;clip.pending=false;}
+  }
+  if(btn){btn.textContent=soundOn?'Sound on':'Sound off';if(soundOn)btn.title='';}
+  syncAudio();
 });
+// Warm the (few unique) audio URLs at page load so the first toggle doesn't
+// pay DNS/TLS/download latency — especially the large gong sample.
+try{[...new Set(audioClips.map(c=>c.media.src))].forEach(u=>{fetch(u).catch(()=>{});});}catch(_warmError){}
+// Tiny debug handle (toggle state, context, per-clip health) for verification.
+window.__viewerAudio={isOn:()=>soundOn,contextState:()=>soundContext?soundContext.state:'none',blips:()=>blipCount,
+  clips:()=>audioClips.map(c=>({file:(c.media.currentSrc||c.media.src).split('/').pop(),rs:c.media.readyState,err:c.hasError}))};
 function chime(frequency,duration,volume){
   if(!soundOn||!soundContext)return;
   for(const [ratio,gain] of [[1,1],[2.76,.35],[5.4,.12]]){
