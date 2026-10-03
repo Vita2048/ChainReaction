@@ -254,7 +254,7 @@ rod([13.22,.02,.90],[13.22,4.34,.90],.065,edge);
 // Two descending turns plus a low exit into the seesaw cup.
 const spiralPoints=[];
 for(let i=0;i<=160;i++){const u=i/160,a=Math.PI+4*Math.PI*u;spiralPoints.push(new T.Vector3(15.4+1.8*Math.cos(a),4.6-2.65*u,1.2+1.8*Math.sin(a)));}
-spiralPoints.push(vec([13.6,1.80,.55]),vec([14.1,1.64,-.55]),vec([15.1,1.48,-1.45]),vec([16.3,1.35,-1.6]));
+spiralPoints.push(vec([13.6,1.80,.55]),vec([14.1,1.70,-.55]),vec([15.1,1.62,-1.45]),vec([16.3,1.55,-1.6]));
 const spiralPath=new T.CatmullRomCurve3(spiralPoints);
 const runnerDrop=Math.sqrt((.22+.025)**2-.12**2);
 for(const side of [-1,1]){
@@ -262,12 +262,21 @@ for(const side of [-1,1]){
 }
 for(let j=0;j<=40;j++){const p=spiralPath.getPointAt(j/40),d=spiralPath.getTangentAt(j/40),n=new T.Vector3(-d.z,0,d.x).normalize();const a=p.clone().addScaledVector(n,-.22),b=p.clone().addScaledVector(n,.22);a.y-=runnerDrop+.04;b.y=a.y;rod(a.toArray(),b.toArray(),.025,edge);if(j%5===0&&j<36){const outer=p.clone().addScaledVector(n,.28);rod([outer.x,.03,outer.z],[outer.x,p.y-runnerDrop-.04,outer.z],.04,edge);}}
 const spiralBall=mesh(new T.SphereGeometry(.22,28,20),chrome);
-const seesaw=new T.Group();seesaw.position.set(17.3,1,-1.6);scene.add(seesaw);bearing(17.3,1,-1.6);
+const seesaw=new T.Group();seesaw.position.set(17.3,1.20,-1.6);scene.add(seesaw);bearing(17.3,1.20,-1.6);
+// Original straight beam, raised just enough to clear the waiting blue ball.
 box(2.4,.12,.42,brass,0,0,0,seesaw,.04);
 mesh(new T.CylinderGeometry(.34,.34,.08,32),edge,-1,.09,0,seesaw);
 const cupRim=mesh(new T.TorusGeometry(.29,.04,10,40),brass,-1,.15,0,seesaw);cupRim.rotation.x=Math.PI/2;
-const catCatch=box(.10,.34,.40,chrome,18.12,.82,-1.6,scene,.02);
-const transferRod=link([18.3,1,-1.6],[18.12,.82,-1.6]);
+// Solve the desktop stop from actual cup/beam vertices, including rounded edges.
+const seesawVertices=[];
+seesaw.children.forEach(o=>{if(!o.geometry)return;o.updateMatrix();const p=o.geometry.attributes.position;for(let i=0;i<p.count;i++)seesawVertices.push(new T.Vector3().fromBufferAttribute(p,i).applyMatrix4(o.matrix));});
+const DESK_Y=-.0125;
+function seesawBottom(angle){return seesaw.position.y+Math.min(...seesawVertices.map(p=>p.x*Math.sin(angle)+p.y*Math.cos(angle)));}
+let stopLow=0,stopHigh=Math.PI/2;
+for(let i=0;i<50;i++){const mid=(stopLow+stopHigh)/2;if(seesawBottom(mid)>DESK_Y)stopLow=mid;else stopHigh=mid;}
+const SEESAW_REST=(stopLow+stopHigh)/2;
+const catCatch=box(.10,.34,.40,chrome,18.40,.88,-1.6,scene,.02);
+const transferRod=link([18.3,1.20,-1.6],[18.40,.88,-1.6]);
 
 const launcher=new T.Group();launcher.position.set(19.1,.65,-1.6);scene.add(launcher);bearing(19.1,.65,-1.6);
 box(1.6,.12,.27,brass,-.45,0,0,launcher,.035);
@@ -363,12 +372,14 @@ function poseExtension(t){
   gongHanger.rotation.z=.09*g;rocker.rotation.z=-.24*g;
   const gateOpen=smooth((t-E.gate)/.35);gate.position.x=13.6+.9*gateOpen;
   moveLink(gateRod,[GX+.32+.50*Math.sin(.24*g),GY-.06+.50*Math.cos(.24*g),PZ],[13.22+.9*gateOpen,4.34,.90]);
-  seesaw.rotation.z=.32*smooth((t-E.cup)/(E.tip-E.cup));
+  seesaw.rotation.z=SEESAW_REST*smooth((t-E.cup)/(E.tip-E.cup));
   spiralBall.rotation.z=-clamp((t-E.roll)/(E.cup-E.roll))*spiralPath.getLength()/.22;
   if(t<E.cup){const u=clamp((t-E.roll)/(E.cup-E.roll));spiralBall.position.copy(spiralPath.getPointAt(u*u*.4+u*.6));}
   else{spiralBall.position.copy(vec([-1,.35,0]).applyAxisAngle(vec([0,0,1]),seesaw.rotation.z).add(seesaw.position));}
   const end=vec([1,0,0]).applyAxisAngle(vec([0,0,1]),seesaw.rotation.z).add(seesaw.position);
-  catCatch.position.y=.82+.40*smooth((t-E.cup)/(E.tip-E.cup));moveLink(transferRod,end.toArray(),catCatch.position.toArray());
+  catCatch.position.copy(vec([1.10,-.32,0]).applyAxisAngle(vec([0,0,1]),seesaw.rotation.z).add(seesaw.position));
+  catCatch.rotation.z=seesaw.rotation.z;
+  moveLink(transferRod,end.toArray(),catCatch.position.toArray());
   launcher.rotation.z=-1.05*smooth((t-E.tip)/(E.launch-E.tip));
   if(t<E.launch)blueBall.position.copy(launchLocal.clone().applyAxisAngle(vec([0,0,1]),launcher.rotation.z).add(launcher.position));
   else if(t<E.land){const q=t-E.launch;blueBall.position.copy(launchStart).addScaledVector(flightVelocity,q);blueBall.position.y-=gravity*q*q/2;}

@@ -9,7 +9,7 @@ const server=http.createServer((req,res)=>{
   const file=path.join(root,decodeURIComponent(req.url.split('?')[0]));
   if(!file.startsWith(root)||!fs.existsSync(file)){res.writeHead(404);res.end();return;}
   let data=fs.readFileSync(file);
-  if(file.endsWith('.html'))data=data.toString().replaceAll('https://unpkg.com/three@0.180.0/','/node_modules/three/').replace('poseAt(0); requestAnimationFrame(loop);','playing=false; window.inspectViewer={setTime:t=>time=t,poseAt,SIM,TRIP,LAST_REST,paddleAngle,dominoes,latch,striker,scene,camera,controls,E,DURATION,spiralBall,blueBall,launchStart,flightVelocity,flightDuration,gravity,funnelTop,seesaw,launcher,pendulum,blocks,finaleTiles,flag,counterweight,views,finalLever,T,retainingCradle,cradlePoints,cradleWire,cockedBob,weight}; poseAt(0); requestAnimationFrame(loop);');
+  if(file.endsWith('.html'))data=data.toString().replaceAll('https://unpkg.com/three@0.180.0/','/node_modules/three/').replace('poseAt(0); requestAnimationFrame(loop);','playing=false; window.inspectViewer={setTime:t=>time=t,poseAt,SIM,TRIP,LAST_REST,paddleAngle,dominoes,latch,striker,scene,camera,controls,E,DURATION,spiralBall,blueBall,launchStart,flightVelocity,flightDuration,gravity,funnelTop,seesaw,launcher,pendulum,blocks,finaleTiles,flag,counterweight,views,finalLever,T,retainingCradle,cradlePoints,cradleWire,cockedBob,weight,catCatch,transferRod,seesawBottom,SEESAW_REST,DESK_Y}; poseAt(0); requestAnimationFrame(loop);');
   res.setHeader('Content-Type',file.endsWith('.html')?'text/html':'text/javascript');res.end(data);
 });
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
@@ -70,6 +70,17 @@ try{
     return {minGap,releaseGap,held,opening:v.cradlePoints[0].distanceTo(v.cradlePoints.at(-1))};
   });
   assert(cradle.minGap>=-.001,JSON.stringify(cradle));assert(cradle.releaseGap>.1);assert(cradle.held<1e-8);assert(cradle.opening>.6);
+  const seesawCheck=await page.evaluate(()=>{
+    const v=window.inspectViewer;let clearance=Infinity,floorGap=Infinity;
+    const obstacles=[...v.seesaw.children.filter(o=>o.geometry),v.catCatch,v.transferRod];
+    for(let i=0;i<=400;i++){
+      v.poseAt(14+i/100);v.scene.updateMatrixWorld(true);
+      floorGap=Math.min(floorGap,v.seesawBottom(v.seesaw.rotation.z)-v.DESK_Y);
+      for(const o of obstacles){o.geometry.computeBoundingBox();const p=o.worldToLocal(v.blueBall.position.clone()),closest=p.clone().clamp(o.geometry.boundingBox.min,o.geometry.boundingBox.max);o.localToWorld(closest);clearance=Math.min(clearance,closest.distanceTo(v.blueBall.position)-.16);}
+    }
+    v.poseAt(v.E.tip);return {clearance,floorGap,restGap:v.seesawBottom(v.seesaw.rotation.z)-v.DESK_Y,angle:v.SEESAW_REST};
+  });
+  assert(seesawCheck.clearance>0,JSON.stringify(seesawCheck));assert(seesawCheck.floorGap> -1e-8);assert(Math.abs(seesawCheck.restGap)<1e-8);
   await page.click('#bar [data-t="30"]');
   assert.equal(await page.$eval('#play',e=>e.textContent),'Play');
   assert.equal(await page.$eval('#time',e=>Number(e.value)),30);
@@ -90,8 +101,13 @@ try{
     await page.evaluate(t=>{const v=window.inspectViewer;v.setTime(t);v.poseAt(t);v.camera.position.set(28,2.8,-1.6);v.controls.target.set(22.8,1.4,-1.6);},t);
     await new Promise(r=>setTimeout(r,120));await page.screenshot({path:`snapshots/cradle-${name}.png`});
   }
-  console.log(JSON.stringify({result:'PASS',samples:3601,...result,extension,cradle},null,2));
+  for(const [name,t] of [['closed',14.9],['released',16.2],['launch',17]]){
+    await page.evaluate(t=>{const v=window.inspectViewer;v.setTime(t);v.poseAt(t);v.camera.position.set(18.5,2.8,-6.5);v.controls.target.set(17.6,.85,-1.6);},t);
+    await new Promise(r=>setTimeout(r,120));await page.screenshot({path:`snapshots/seesaw-${name}.png`});
+  }
+  console.log(JSON.stringify({result:'PASS',samples:3601,...result,extension,cradle,seesawCheck},null,2));
 }finally{await browser?.close();server.close();}
+
 
 
 
