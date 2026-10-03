@@ -222,7 +222,7 @@ const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x)), smooth=x=>{x=clamp(x);return
 // Act II is a seekable mechanical choreography. Every pose is derived from
 // absolute time, including released objects, so rewind never leaves stale state.
 const DURATION=34;
-const E={gate:SIM.strike,roll:SIM.strike+.45,cup:15,tip:16.2,launch:16.85,land:18.1,paddle:18.9,pendulum:19.2};
+const E={gate:SIM.strike,roll:SIM.strike+.45,cup:15,tip:16.2,launch:16.85,land:17.67,paddle:18.9,pendulum:19.2};
 E.wall=E.pendulum+2.1*Math.acos(-Math.asin(.15/3.2)/.8)/Math.PI;
 E.domino=E.wall+.7;
 const vec=a=>new T.Vector3(...a);
@@ -240,8 +240,6 @@ box(18.9,.045,9.3,edge,22,-.035,1.1,scene,.08);
 for(const z of [-3.45,5.65])rod([12.65,-.01,z],[31.35,-.01,z],.025,brass);
 for(let x=13;x<31;x+=1.4)for(const z of [-3.3,5.5])mesh(new T.CylinderGeometry(.04,.04,.025,12),chrome,x,.01,z);
 spot('#ffe6b4',420,[21,11,5],[22,1,0]);spot('#8bbcff',230,[29,8,-5],[25,1,0]);
-caption('02 / SPIRAL',15.3,.35,3.8);caption('03 / TRANSFER',19,.35,-3.15);
-caption('04 / IMPACT',26,.35,-3.15);caption('05 / CHAIN COMPLETE',19,.35,5.45,3.4);
 
 // One actual hinge transform drives the gong and its continuous bent release bar.
 const gongHanger=new T.Group();gongHanger.position.set(GX+.32,GY-.06,PZ);scene.add(gongHanger);gongHanger.add(gong);gong.position.set(-.32,.06,0);
@@ -302,10 +300,23 @@ rod([19.1,.51,-1.87],[19.6,.12,-1.87],.025,brass);
 box(2,.13,1.1,black,18.9,.06,-1.6);
 const blueBall=mesh(new T.SphereGeometry(.16,28,20),mat('#438cff',.45,.18));
 const launchLocal=vec([-1.1,.28,0]);
-const launchStart=launchLocal.clone().applyAxisAngle(vec([0,0,1]),-1.05).add(launcher.position);
+const launchAngle=-.75;
+const launchOffset=launchLocal.clone().applyAxisAngle(vec([0,0,1]),launchAngle);
+const launchStart=launchOffset.clone().add(launcher.position);
 const funnelTop=vec([22,1.9,-1.6]);
-const flightDuration=E.land-E.launch,gravity=5.8;
-const flightVelocity=funnelTop.clone().sub(launchStart).divideScalar(flightDuration);flightVelocity.y+=gravity*flightDuration/2;
+const flightDuration=E.land-E.launch;
+// Match the cup's tangent velocity exactly, then solve a constant gravity arc
+// to the funnel. The ball inherits its speed instead of accelerating at release.
+const launchAngularSpeed=(funnelTop.x-launchStart.x)/(flightDuration*launchOffset.y);
+const flightVelocity=vec([launchAngularSpeed*launchOffset.y,-launchAngularSpeed*launchOffset.x,0]);
+const gravity=2*(flightVelocity.y*flightDuration-(funnelTop.y-launchStart.y))/(flightDuration*flightDuration);
+const launchPower=launchAngularSpeed*(E.launch-E.tip)/(-launchAngle);
+function launcherAngle(t){
+  if(t<E.launch)return launchAngle*Math.pow(clamp((t-E.tip)/(E.launch-E.tip)),launchPower);
+  // The unloaded arm carries on briefly, then settles against its stop.
+  const settle=.16,q=Math.min(settle,t-E.launch);
+  return launchAngle-launchAngularSpeed*(q-q*q/(2*settle));
+}
 const funnelMat=brass.clone();funnelMat.side=T.DoubleSide;
 mesh(new T.CylinderGeometry(.68,.20,.8,48,1,true),funnelMat,22,1.5,-1.6);
 const lip=mesh(new T.TorusGeometry(.68,.035,10,48),chrome,22,1.9,-1.6);lip.rotation.x=Math.PI/2;
@@ -409,7 +420,7 @@ function poseExtension(t){
   catCatch.position.copy(vec([1.10,-.32,0]).applyAxisAngle(vec([0,0,1]),seesaw.rotation.z).add(seesaw.position));
   catCatch.rotation.z=seesaw.rotation.z;
   moveLink(transferRod,end.toArray(),catCatch.position.toArray());
-  launcher.rotation.z=-1.05*smooth((t-E.tip)/(E.launch-E.tip));
+  launcher.rotation.z=launcherAngle(t);
   if(t<E.launch)blueBall.position.copy(launchLocal.clone().applyAxisAngle(vec([0,0,1]),launcher.rotation.z).add(launcher.position));
   else if(t<E.land){const q=t-E.launch;blueBall.position.copy(launchStart).addScaledVector(flightVelocity,q);blueBall.position.y-=gravity*q*q/2;}
   else if(t<E.paddle){const u=clamp((t-E.land)/(E.paddle-E.land));blueBall.position.set(22,1.9+( .725-1.9)*u*u,-1.6);}
@@ -473,8 +484,41 @@ document.querySelector('#export').addEventListener('click',()=>{
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight,false);}
 addEventListener('resize',resize); resize();
 let soundContext=null,soundOn=false;
+// Reuse the composition's recordings, clocked to this viewer's corrected events.
+// Each cue owns a media element so neighboring domino impacts can overlap.
+const audioClips=[];
+function audioClip(file,start,duration,volume,{offset=0,loop=false,fadeIn=0,fadeOut=.025}={}){
+  const media=new Audio('assets/audio/'+file);media.preload='auto';media.loop=loop;
+  const clip={media,start,duration,volume,offset,fadeIn,fadeOut,active:false,pending:false};
+  audioClips.push(clip);return clip;
+}
+audioClip('roll.mp3',0,3.3,.52,{fadeIn:.18,fadeOut:.35});
+for(const e of SIM.events)audioClip('click.mp3',e.t,.20,.75,{offset:.022});
+audioClip('click.mp3',SIM.release,.20,.40,{offset:.022});
+audioClip('gong-master.wav',SIM.strike,5,.85,{fadeOut:1.2});
+audioClip('roll.mp3',E.roll,E.cup-E.roll,.32,{loop:true,fadeIn:.12,fadeOut:.25});
+for(const d of finaleTiles)audioClip('click.mp3',d.start,.20,.55,{offset:.022});
+function syncAudio(){
+  for(const clip of audioClips){
+    const {media}=clip,elapsed=time-clip.start;
+    const active=soundOn&&playing&&elapsed>=0&&elapsed<clip.duration;
+    if(!active){if(!media.paused)media.pause();clip.active=false;continue;}
+    let target=clip.offset+elapsed;
+    if(media.loop&&Number.isFinite(media.duration))target%=media.duration;
+    if(media.readyState>=1&&(!clip.active||Math.abs(media.currentTime-target)>.12))media.currentTime=target;
+    media.playbackRate=speed;
+    media.volume=clip.volume*(clip.fadeIn?clamp(elapsed/clip.fadeIn):1)*(clip.fadeOut?clamp((clip.duration-elapsed)/clip.fadeOut):1);
+    if(media.paused&&!clip.pending){
+      clip.pending=true;
+      media.play().catch(error=>{
+        if(error.name!=='AbortError'){soundOn=false;document.querySelector('#sound').textContent='Sound off';document.querySelector('#sound').title='Audio could not play: '+error.message;}
+      }).finally(()=>clip.pending=false);
+    }
+    clip.active=true;
+  }
+}
 document.querySelector('#sound').addEventListener('click',async()=>{
-  soundOn=!soundOn;if(soundOn){soundContext??=new AudioContext();await soundContext.resume();}
+  soundOn=!soundOn;syncAudio();if(soundOn){soundContext??=new AudioContext();await soundContext.resume();}
   document.querySelector('#sound').textContent=soundOn?'Sound on':'Sound off';
 });
 function chime(frequency,duration,volume){
@@ -484,13 +528,14 @@ function chime(frequency,duration,volume){
     o.frequency.value=frequency*ratio;g.gain.setValueAtTime(volume*gain,now);g.gain.exponentialRampToValueAtTime(.0001,now+duration);o.connect(g).connect(soundContext.destination);o.start(now);o.stop(now+duration);
   }
 }
-const soundEvents=[[SIM.strike,180,2.8,.12],[E.tip,450,.12,.05],[E.launch,600,.10,.04],[E.wall,95,.45,.08],[E.bell,880,1.8,.09],...finaleTiles.map(d=>[d.start,300,.045,.02])];
+const soundEvents=[[E.tip,450,.12,.05],[E.launch,600,.10,.04],[E.wall,95,.45,.08],[E.bell,880,1.8,.09]];
 let last=performance.now();
 function loop(now){
   requestAnimationFrame(loop);
   const dt=Math.min(.1,(now-last)/1000); last=now;
   if(playing){const previous=time;time+=dt*speed;for(const [at,f,d,v] of soundEvents)if(previous<at&&time>=at)chime(f,d,v);if(time>DURATION)time=0;slider.value=time;}
   poseAt(time);
+  syncAudio();
   tlabel.textContent=time.toFixed(2)+' s';
   controls.update(); renderer.render(scene,camera);
 }
