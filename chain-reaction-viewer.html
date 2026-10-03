@@ -288,15 +288,28 @@ const lip=mesh(new T.TorusGeometry(.68,.035,10,48),chrome,22,1.9,-1.6);lip.rotat
 mesh(new T.CylinderGeometry(.20,.20,.36,32,1,true),edge,22,.92,-1.6);
 for(const z of [-2.25,-.95])rod([22,.02,z],[22,1.8,z],.045,edge);
 const dropPaddle=new T.Group();dropPaddle.position.set(21.7,.52,-1.6);scene.add(dropPaddle);box(.7,.09,.44,brass,.3,0,0,dropPaddle,.025);bearing(21.7,.52,-1.6);
-const retainingPin=rod([23.04,1.77,-1.95],[23.04,1.77,-1.25],.045,chrome);
-rod([23.04,.02,-2.14],[23.04,1.77,-2.14],.045,edge);rod([23.04,1.77,-2.14],[23.04,1.77,-1.96],.05,edge);
-const releaseLink=link([22.25,.52,-1.6],[23.04,1.77,-1.95]);
+// One bent bar is hinged on the paddle's front edge. Its open cradle
+// holds the cocked bob from below/right and tips down with the paddle to release.
+const cradleHinge=new T.Group();cradleHinge.position.set(.55,0,0);dropPaddle.add(cradleHinge);
+rod([.43,0,0],[.67,0,0],.045,chrome,dropPaddle);
+const retainingCradle=new T.Group();retainingCradle.name='Open pendulum cradle';retainingCradle.position.set(-.55,0,0);cradleHinge.add(retainingCradle);
+const cockedBob=vec([25.4-3.2*Math.sin(.8),4-3.2*Math.cos(.8),-1.6]);
+const cradleCenter=cockedBob.clone().sub(dropPaddle.position);
+const cradleWire=.028,cradlePoints=[];
+// Shallow U across the forward face (+X), spanning Z rather than an XY hoop.
+// It follows the sphere's surface, with two raised free tips and a central stem.
+for(let i=0;i<=80;i++){const s=-1+2*i/80,z=.38*s,y=-.08+.30*s*s,x=Math.sqrt(.484**2-y*y-z*z);cradlePoints.push(cradleCenter.clone().add(vec([x,y,z])));}
+const cradleArc=mesh(new T.TubeGeometry(new T.CatmullRomCurve3(cradlePoints),100,cradleWire,12,false),chrome,0,0,0,retainingCradle);
+for(const p of [cradlePoints[0],cradlePoints.at(-1)])mesh(new T.SphereGeometry(cradleWire,16,12),chrome,...p.toArray(),retainingCradle);
+const cradleBottom=cradlePoints[40];
+const cradleStemPoints=[vec([.55,0,0]),vec([.90,.15,0]),vec([1.60,.64,0]),vec([cradleBottom.x,cradleBottom.y-.22,0]),cradleBottom.clone()];
+mesh(new T.TubeGeometry(new T.CatmullRomCurve3(cradleStemPoints),48,.032,12,false),chrome,0,0,0,retainingCradle);
+box(.14,.07,.15,chrome,.55,0,0,dropPaddle,.025);
 box(1.25,.09,.65,black,22.35,.06,-1.6);
 
 const pendulum=new T.Group();pendulum.position.set(25.4,4,-1.6);scene.add(pendulum);
 rod([0,0,0],[0,-3.2,0],.035,chrome,pendulum);
 const weight=mesh(new T.SphereGeometry(.45,36,24),mat('#263345',.85,.19),0,-3.2,0,pendulum);
-const weightBand=mesh(new T.TorusGeometry(.45,.022,10,48),brass,0,-3.2,0,pendulum);weightBand.rotation.x=Math.PI/2;
 for(const z of [-2.55,-.65]){rod([25.4,.02,z],[25.4,4.05,z],.085,brass);box(.50,.12,.5,black,25.4,.06,z);}
 rod([25.4,4,-2.6],[25.4,4,-.6],.085,brass);
 const blocks=[];const wood=mat('#b9753e',.05,.65);
@@ -363,9 +376,10 @@ function poseExtension(t){
   else if(t<E.pendulum){const u=smooth((t-E.paddle)/(E.pendulum-E.paddle));blueBall.position.copy(vec([.30+.40*u,.205,0]).applyAxisAngle(vec([0,0,1]),-.45*u).add(dropPaddle.position));}
   else{const exit=vec([.70,.205,0]).applyAxisAngle(vec([0,0,1]),-.45).add(dropPaddle.position),q=Math.min(.35,t-E.pendulum);blueBall.position.copy(exit);blueBall.position.x+=.35*q;blueBall.position.y=Math.max(.265,exit.y-.4*q-4.9*q*q);}
   blueBall.rotation.z=-(t-E.launch)*5;
-  const trip=smooth((t-E.paddle)/(E.pendulum-E.paddle));dropPaddle.rotation.z=-.45*trip;retainingPin.position.z=-1.6-.8*trip;
-  const paddleTip=vec([.55,0,0]).applyAxisAngle(vec([0,0,1]),dropPaddle.rotation.z).add(dropPaddle.position);
-  moveLink(releaseLink,paddleTip.toArray(),[23.04,1.77,-1.95-.8*trip]);
+  const trip=smooth((t-E.paddle)/(E.pendulum-E.paddle));dropPaddle.rotation.z=-.45*trip;
+  // The end hinge folds the cradle toward the front as the paddle lowers it,
+  // removing the whole fork from the pendulum's XY swing plane before release.
+  cradleHinge.rotation.x=.90*smooth((trip-.55)/.45);
   const pt=Math.max(0,t-E.pendulum);pendulum.rotation.z=-.8*Math.cos(Math.PI*Math.min(pt,2.1)/2.1);
   if(pt>2.1)pendulum.rotation.z=.8*Math.cos((pt-2.1)*2.2)*Math.exp(-(pt-2.1)*.85);
   blocks.forEach(({mesh:b,start,row,col},i)=>{
@@ -381,7 +395,7 @@ function poseExtension(t){
   moveLink(flagRope,[15.43,3.8,4.2],[15.43,flag.position.y,4.2]);moveLink(weightRope,[15.15,3.8,4.2],counterweight.position.toArray());
   moveLink(flagLatch,[16,.18,4.2],[15.15,3.25,4.2+.3*smooth((t-E.flag)/.2)]);
   bell.rotation.z=t>E.bell?.3*Math.sin((t-E.bell)*18)*Math.exp(-(t-E.bell)*1.4):0;
-  const stages=[[0,'01 / Ball on rails'],[3.3,'02 / First domino cascade'],[SIM.trigger,'03 / Paddle releases striker'],[SIM.strike,'04 / Gong opens the gate'],[E.roll,'05 / Spiral descent'],[E.cup,'06 / Seesaw pulls the catch'],[E.launch,'07 / Catapult → receiving funnel'],[E.paddle,'08 / Paddle withdraws retaining pin'],[E.pendulum,'09 / Pendulum released'],[E.wall,'10 / Wooden wall collapses'],[E.domino,'11 / Domino return'],[E.flag,'12 / Chain complete']];
+  const stages=[[0,'01 / Ball on rails'],[3.3,'02 / First domino cascade'],[SIM.trigger,'03 / Paddle releases striker'],[SIM.strike,'04 / Gong opens the gate'],[E.roll,'05 / Spiral descent'],[E.cup,'06 / Seesaw pulls the catch'],[E.launch,'07 / Catapult → receiving funnel'],[E.paddle,'08 / Paddle lowers the open cradle'],[E.pendulum,'09 / Pendulum released'],[E.wall,'10 / Wooden wall collapses'],[E.domino,'11 / Domino return'],[E.flag,'12 / Chain complete']];
   document.querySelector('#stage').textContent=stages.filter(s=>t>=s[0]).at(-1)[1];
 }
 const trackLen=track.getLength();
@@ -445,3 +459,4 @@ poseAt(0); requestAnimationFrame(loop);
 </script>
 </body>
 </html>
+
