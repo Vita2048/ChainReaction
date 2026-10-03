@@ -35,17 +35,22 @@
 <div id="hud">
   <h1>Chain Reaction — 3D model</h1>
   <p>Drag to <b>rotate</b> &middot; wheel to <b>zoom</b> &middot; right-drag to <b>pan</b>.</p>
-  <p>Chrome ball &rarr; 18 dominoes &rarr; mousetrap striker &rarr; gong. Scrub time to pose the mechanism.</p>
+  <p>Rails &rarr; dominoes &rarr; gong &rarr; spiral &rarr; seesaw &rarr; catapult &rarr; pendulum &rarr; finale.</p>
+  <p id="stage" style="color:#ffd98a">01 / Ball release</p>
 </div>
 <div id="presets">
   <button data-view="overview">Overview</button>
   <button data-view="ball">Ball / rails</button>
   <button data-view="dominoes">Dominoes</button>
   <button data-view="trigger">Trigger + gong</button>
+  <button data-view="spiral">Spiral + seesaw</button>
+  <button data-view="launch">Catapult + funnel</button>
+  <button data-view="pendulum">Pendulum + wall</button>
+  <button data-view="finale">Finale + flag</button>
 </div>
 <div id="bar">
   <button id="play" class="primary">Pause</button>
-  <input id="time" type="range" min="0" max="15" step="0.01" value="0">
+  <input id="time" type="range" min="0" max="34" step="0.01" value="0">
   <span id="tlabel">0.00 s</span>
   <select id="speed"><option value="0.25">0.25x</option><option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="2">2x</option></select>
   <button data-t="0">Start</button>
@@ -53,6 +58,11 @@
   <button data-t="5.5">Dominoes</button>
   <button data-t="7.3">Trigger</button>
   <button data-t="7.74">Gong!</button>
+  <button data-t="12">Spiral</button>
+  <button data-t="17.3">Launch</button>
+  <button data-t="20.5">Wall</button>
+  <button data-t="30">Finale</button>
+  <button id="sound">Sound off</button>
   <label class="autorot"><input type="checkbox" id="spin"> auto-rotate</label>
   <button id="export">Export GLB</button>
 </div>
@@ -115,9 +125,9 @@ scene.environment=pmrem.fromScene(new RoomEnvironment(),.04).texture;
 scene.environmentIntensity=.6;
 
 const camera=new T.PerspectiveCamera(45,innerWidth/innerHeight,.08,200);
-camera.position.set(2.5,6.5,13.5);
+camera.position.set(13,23,37);
 const controls=new OrbitControls(camera,renderer.domElement);
-controls.target.set(2.2,1.0,0);
+controls.target.set(10.5,1.0,.7);
 controls.enableDamping=true;
 controls.maxDistance=60; controls.minDistance=1.2;
 
@@ -208,9 +218,175 @@ const flare=new T.PointLight('#ffc366',0,7); flare.position.set(GX+.6,GY+.4,PZ+.
 const waves=[]; for(let i=0;i<3;i++){const m=new T.MeshBasicMaterial({color:'#ffc76c',transparent:true,opacity:0,depthWrite:false});const o=mesh(new T.TorusGeometry(1,.009,6,100),m,GX+.08,GY,PZ);o.rotation.y=Math.PI/2;waves.push(o);}
 
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x)), smooth=x=>{x=clamp(x);return x*x*(3-2*x);};
+// Act II is a seekable mechanical choreography. Every pose is derived from
+// absolute time, including released objects, so rewind never leaves stale state.
+const DURATION=34;
+const E={gate:SIM.strike+.25,roll:SIM.strike+.65,cup:15,tip:16.2,launch:16.85,land:18.1,paddle:18.9,pendulum:19.2};
+E.wall=E.pendulum+2.1*Math.acos(-Math.asin(.15/3.2)/.8)/Math.PI;
+E.domino=E.wall+.7;
+const vec=a=>new T.Vector3(...a);
+function link(a,b,r=.025,m=chrome){return rod(a,b,r,m);}
+function moveLink(o,a,b){const p=vec(a),q=vec(b),d=q.clone().sub(p);o.position.copy(p.add(q).multiplyScalar(.5));o.scale.y=d.length()/o.geometry.parameters.height;o.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),d.normalize());}
+function bearing(x,y,z){for(const s of [-1,1])box(.25,y,.17,edge,x,y/2,z+s*.35);rod([x,y,z-.45],[x,y,z+.45],.075,chrome);}
+function caption(text,x,y,z,width=2.6){
+  const c=document.createElement('canvas');c.width=768;c.height=128;
+  const ctx=c.getContext('2d');ctx.fillStyle='#111c2b';ctx.fillRect(0,0,768,128);ctx.strokeStyle='#b49154';ctx.lineWidth=4;ctx.strokeRect(4,4,760,120);ctx.fillStyle='#ffe4ad';ctx.font='bold 36px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,384,64);
+  const o=mesh(new T.PlaneGeometry(width,width/6),new T.MeshBasicMaterial({map:new T.CanvasTexture(c),side:T.DoubleSide}),x,y,z);return o;
+}
+box(19,.5,9.4,dark,22,-.3,1.1,scene,.18);
+box(18.9,.045,9.3,edge,22,-.035,1.1,scene,.08);
+for(const z of [-3.45,5.65])rod([12.65,-.01,z],[31.35,-.01,z],.025,brass);
+for(let x=13;x<31;x+=1.4)for(const z of [-3.3,5.5])mesh(new T.CylinderGeometry(.04,.04,.025,12),chrome,x,.01,z);
+spot('#ffe6b4',420,[21,11,5],[22,1,0]);spot('#8bbcff',230,[29,8,-5],[25,1,0]);
+caption('02 / SPIRAL',15.3,.35,3.8);caption('03 / TRANSFER',19,.35,-3.15);
+caption('04 / IMPACT',26,.35,-3.15);caption('05 / CHAIN COMPLETE',19,.35,5.45,3.4);
+
+// Gong tab presses a rocker. Its long pushrod opens the elevated start gate.
+const gongHanger=new T.Group();gongHanger.position.set(GX,GY+.78,PZ);scene.add(gongHanger);gongHanger.add(gong);gong.position.set(0,-.78,0);
+const gongTab=box(.27,.10,.14,brass,.14,-.84,0,gongHanger,.025);
+const rocker=new T.Group();rocker.position.set(GX+.32,GY-.06,PZ);scene.add(rocker);
+rod([0,-.12,0],[0,.50,0],.04,brass,rocker);bearing(GX+.32,GY-.06,PZ);
+const gate=new T.Group();gate.position.set(13.6,4.6,.90);gate.rotation.y=Math.PI/2;scene.add(gate);
+rod([0,-.26,-.38],[0,-.26,.38],.045,chrome,gate);box(.09,.43,.59,brass,0,0,0,gate,.02);
+const gateRod=link([GX+.32,GY+.44,PZ],[13.22,4.34,.90]);
+rod([13.22,.02,.90],[13.22,4.34,.90],.065,edge);
+
+// Two descending turns plus a low exit into the seesaw cup.
+const spiralPoints=[];
+for(let i=0;i<=160;i++){const u=i/160,a=Math.PI+4*Math.PI*u;spiralPoints.push(new T.Vector3(15.4+1.8*Math.cos(a),4.6-2.65*u,1.2+1.8*Math.sin(a)));}
+spiralPoints.push(vec([13.6,1.80,.55]),vec([14.1,1.64,-.55]),vec([15.1,1.48,-1.45]),vec([16.3,1.35,-1.6]));
+const spiralPath=new T.CatmullRomCurve3(spiralPoints);
+const runnerDrop=Math.sqrt((.22+.025)**2-.12**2);
+for(const side of [-1,1]){
+  const rail=[];for(let j=0;j<=300;j++){const p=spiralPath.getPointAt(j/300),d=spiralPath.getTangentAt(j/300),n=new T.Vector3(-d.z,0,d.x).normalize();p.addScaledVector(n,side*.12);p.y-=runnerDrop;rail.push(p);}tube(new T.CatmullRomCurve3(rail),.025,brass);
+}
+for(let j=0;j<=40;j++){const p=spiralPath.getPointAt(j/40),d=spiralPath.getTangentAt(j/40),n=new T.Vector3(-d.z,0,d.x).normalize();const a=p.clone().addScaledVector(n,-.22),b=p.clone().addScaledVector(n,.22);a.y-=runnerDrop+.04;b.y=a.y;rod(a.toArray(),b.toArray(),.025,edge);if(j%5===0&&j<36){const outer=p.clone().addScaledVector(n,.28);rod([outer.x,.03,outer.z],[outer.x,p.y-runnerDrop-.04,outer.z],.04,edge);}}
+const spiralBall=mesh(new T.SphereGeometry(.22,28,20),chrome);
+const seesaw=new T.Group();seesaw.position.set(17.3,1,-1.6);scene.add(seesaw);bearing(17.3,1,-1.6);
+box(2.4,.12,.42,brass,0,0,0,seesaw,.04);
+mesh(new T.CylinderGeometry(.34,.34,.08,32),edge,-1,.09,0,seesaw);
+const cupRim=mesh(new T.TorusGeometry(.29,.04,10,40),brass,-1,.15,0,seesaw);cupRim.rotation.x=Math.PI/2;
+const catCatch=box(.10,.34,.40,chrome,18.12,.82,-1.6,scene,.02);
+const transferRod=link([18.3,1,-1.6],[18.12,.82,-1.6]);
+
+const launcher=new T.Group();launcher.position.set(19.1,.65,-1.6);scene.add(launcher);bearing(19.1,.65,-1.6);
+box(1.6,.12,.27,brass,-.45,0,0,launcher,.035);
+mesh(new T.CylinderGeometry(.24,.24,.08,24),edge,-1.1,.08,0,launcher);
+const launchRim=mesh(new T.TorusGeometry(.20,.035,8,32),brass,-1.1,.13,0,launcher);launchRim.rotation.x=Math.PI/2;
+for(let i=0;i<12;i++){const spring=mesh(new T.TorusGeometry(.14,.023,8,24),brass,19.1,.65,-1.85+i*.045);}
+rod([19.1,.51,-1.87],[19.6,.12,-1.87],.025,brass);
+box(2,.13,1.1,black,18.9,.06,-1.6);
+const blueBall=mesh(new T.SphereGeometry(.16,28,20),mat('#438cff',.45,.18));
+const launchLocal=vec([-1.1,.28,0]);
+const launchStart=launchLocal.clone().applyAxisAngle(vec([0,0,1]),-1.05).add(launcher.position);
+const funnelTop=vec([22,1.9,-1.6]);
+const flightDuration=E.land-E.launch,gravity=5.8;
+const flightVelocity=funnelTop.clone().sub(launchStart).divideScalar(flightDuration);flightVelocity.y+=gravity*flightDuration/2;
+const funnelMat=brass.clone();funnelMat.side=T.DoubleSide;
+mesh(new T.CylinderGeometry(.68,.20,.8,48,1,true),funnelMat,22,1.5,-1.6);
+const lip=mesh(new T.TorusGeometry(.68,.035,10,48),chrome,22,1.9,-1.6);lip.rotation.x=Math.PI/2;
+mesh(new T.CylinderGeometry(.20,.20,.36,32,1,true),edge,22,.92,-1.6);
+for(const z of [-2.25,-.95])rod([22,.02,z],[22,1.8,z],.045,edge);
+const dropPaddle=new T.Group();dropPaddle.position.set(21.7,.52,-1.6);scene.add(dropPaddle);box(.7,.09,.44,brass,.3,0,0,dropPaddle,.025);bearing(21.7,.52,-1.6);
+const retainingPin=rod([23.04,1.77,-1.95],[23.04,1.77,-1.25],.045,chrome);
+rod([23.04,.02,-2.14],[23.04,1.77,-2.14],.045,edge);rod([23.04,1.77,-2.14],[23.04,1.77,-1.96],.05,edge);
+const releaseLink=link([22.25,.52,-1.6],[23.04,1.77,-1.95]);
+box(1.25,.09,.65,black,22.35,.06,-1.6);
+
+const pendulum=new T.Group();pendulum.position.set(25.4,4,-1.6);scene.add(pendulum);
+rod([0,0,0],[0,-3.2,0],.035,chrome,pendulum);
+const weight=mesh(new T.SphereGeometry(.45,36,24),mat('#263345',.85,.19),0,-3.2,0,pendulum);
+const weightBand=mesh(new T.TorusGeometry(.45,.022,10,48),brass,0,-3.2,0,pendulum);weightBand.rotation.x=Math.PI/2;
+for(const z of [-2.55,-.65]){rod([25.4,.02,z],[25.4,4.05,z],.085,brass);box(.50,.12,.5,black,25.4,.06,z);}
+rod([25.4,4,-2.6],[25.4,4,-.6],.085,brass);
+const blocks=[];const wood=mat('#b9753e',.05,.65);
+const blockLandings=[[26.5,-2.8],[27.045,-1.6],[26.5,-.4],[27.3,-2.8],[27.3,-.4],[28.1,-.4],[28.1,-2.8],[28.9,-2.8],[25.7,-2.8]];
+for(let row=0;row<3;row++)for(let col=0;col<3;col++){
+  const p=vec([26.2,.21+row*.42,-1.6+(col-1)*.48]);const b=box(.4,.4,.45,wood,p.x,p.y,p.z,scene,.035);blocks.push({mesh:b,start:p,row,col});
+  // End-grain bands retain the warm wooden material without external textures.
+  for(const y of [-.1,.1])box(.405,.009,.455,mat('#84502e',0,.8),0,y,0,b,.002);
+}
+// Front return: a semicircle followed by a straight run of growing tiles.
+const finalePath=new T.CurvePath();
+const returnPoints=[];for(let i=0;i<=60;i++){const a=-Math.PI/2+Math.PI*i/60;returnPoints.push(vec([27.3+2.9*Math.cos(a),.065,1.3+2.9*Math.sin(a)]));}
+returnPoints.push(vec([25,.065,4.2]),vec([22,.065,4.2]),vec([19,.065,4.2]),vec([16.8,.065,4.2]));
+const returnCurve=new T.CatmullRomCurve3(returnPoints);
+const finaleTiles=[],tileCount=37;
+for(let i=0;i<tileCount;i++){
+  const u=i/(tileCount-1),p=returnCurve.getPointAt(u),d=returnCurve.getTangentAt(u);const h=.78+.62*Math.max(0,(u-.60)/.4);
+  const root=new T.Group();root.position.copy(p);root.rotation.y=-Math.atan2(d.z,d.x);scene.add(root);
+  const pivot=new T.Group();root.add(pivot);box(.11,h,.48,mat(palette[Math.floor(i/7)%6],.25,.24),0,h/2,0,pivot,.025);
+  rod([0,0,-.34],[0,0,.34],.025,brass,root);for(const s of [-1,1])box(.14,.09,.10,black,0,0,s*.34,root,.025);
+  finaleTiles.push({root,pivot,h,start:E.domino+i*.19});
+}
+E.flag=finaleTiles.at(-1).start+.40;
+let bellLo=0,bellHi=1;
+for(let i=0;i<40;i++){const u=(bellLo+bellHi)/2;if(smooth(u)<(3.25-2.40)/2.45)bellLo=u;else bellHi=u;}
+E.bell=E.flag+1.7*(bellLo+bellHi)/2;
+// The final tile rests on the depressed lever's far upper corner.
+const leverCorner=vec([-.36,.05,0]).applyAxisAngle(vec([0,0,1]),.16).add(vec([16,.18,4.2]));
+const finalDx=16.8-leverCorner.x,finalDy=leverCorner.y-.065;
+const FINAL_REST=Math.acos(.055/Math.hypot(finalDx,finalDy))-Math.atan2(finalDy,finalDx);
+const finalLever=new T.Group();finalLever.position.set(16.0,.18,4.2);scene.add(finalLever);box(.72,.1,.50,brass,0,0,0,finalLever,.025);bearing(16,.18,4.2);
+rod([15.3,.02,4.2],[15.3,3.8,4.2],.055,chrome);
+const pulley=mesh(new T.TorusGeometry(.15,.045,10,32),brass,15.3,3.8,4.2);
+const flag=caption('CHAIN COMPLETE',16.25,.7,4.2,1.8);
+const pennant=new T.Shape();pennant.moveTo(-.9,-.2);pennant.lineTo(.9,-.2);pennant.lineTo(.70,0);pennant.lineTo(.9,.2);pennant.lineTo(-.9,.2);pennant.closePath();
+flag.geometry.dispose();flag.geometry=new T.ShapeGeometry(pennant);const flagUV=flag.geometry.attributes.uv;
+for(let i=0;i<flagUV.count;i++)flagUV.setXY(i,(flagUV.getX(i)+.9)/1.8,(flagUV.getY(i)+.2)/.4);
+flagUV.needsUpdate=true;
+const counterweight=box(.24,.43,.24,brass,15.15,3.25,4.2);
+rod([-.12,0,0],[-.24,0,0],.025,chrome,counterweight);mesh(new T.SphereGeometry(.045,16,12),chrome,-.24,0,0,counterweight);
+const flagRope=link([15.43,3.8,4.2],[15.43,.7,4.2],.015,black);
+const weightRope=link([15.15,3.8,4.2],[15.15,3.25,4.2],.015,black);
+const flagLatch=link([16,.18,4.2],[15.15,3.25,4.2],.025,chrome);
+rod([14.1,.02,4.2],[14.1,2.7,4.2],.06,brass);rod([14.1,2.7,4.2],[14.75,2.7,4.2],.05,brass);
+const bell=new T.Group();bell.position.set(14.75,2.65,4.2);scene.add(bell);
+mesh(new T.CylinderGeometry(.12,.32,.42,32,1,true),funnelMat,0,-.23,0,bell);
+rod([0,0,0],[0,-.37,0],.025,chrome,bell);mesh(new T.SphereGeometry(.07,16,12),chrome,0,-.38,0,bell);
+
+function poseExtension(t){
+  const g=smooth((t-SIM.strike)/.18)*(1-smooth((t-SIM.strike-.22)/.7));
+  gongHanger.rotation.z=.09*g;rocker.rotation.z=-.24*g;
+  const gateOpen=smooth((t-E.gate)/.35);gate.position.x=13.6+.9*gateOpen;
+  moveLink(gateRod,[GX+.32+.50*Math.sin(.24*g),GY-.06+.50*Math.cos(.24*g),PZ],[13.22+.9*gateOpen,4.34,.90]);
+  seesaw.rotation.z=.32*smooth((t-E.cup)/(E.tip-E.cup));
+  spiralBall.rotation.z=-clamp((t-E.roll)/(E.cup-E.roll))*spiralPath.getLength()/.22;
+  if(t<E.cup){const u=clamp((t-E.roll)/(E.cup-E.roll));spiralBall.position.copy(spiralPath.getPointAt(u*u*.4+u*.6));}
+  else{spiralBall.position.copy(vec([-1,.35,0]).applyAxisAngle(vec([0,0,1]),seesaw.rotation.z).add(seesaw.position));}
+  const end=vec([1,0,0]).applyAxisAngle(vec([0,0,1]),seesaw.rotation.z).add(seesaw.position);
+  catCatch.position.y=.82+.40*smooth((t-E.cup)/(E.tip-E.cup));moveLink(transferRod,end.toArray(),catCatch.position.toArray());
+  launcher.rotation.z=-1.05*smooth((t-E.tip)/(E.launch-E.tip));
+  if(t<E.launch)blueBall.position.copy(launchLocal.clone().applyAxisAngle(vec([0,0,1]),launcher.rotation.z).add(launcher.position));
+  else if(t<E.land){const q=t-E.launch;blueBall.position.copy(launchStart).addScaledVector(flightVelocity,q);blueBall.position.y-=gravity*q*q/2;}
+  else if(t<E.paddle){const u=clamp((t-E.land)/(E.paddle-E.land));blueBall.position.set(22,1.9+( .725-1.9)*u*u,-1.6);}
+  else if(t<E.pendulum){const u=smooth((t-E.paddle)/(E.pendulum-E.paddle));blueBall.position.copy(vec([.30+.40*u,.205,0]).applyAxisAngle(vec([0,0,1]),-.45*u).add(dropPaddle.position));}
+  else{const exit=vec([.70,.205,0]).applyAxisAngle(vec([0,0,1]),-.45).add(dropPaddle.position),q=Math.min(.35,t-E.pendulum);blueBall.position.copy(exit);blueBall.position.x+=.35*q;blueBall.position.y=Math.max(.265,exit.y-.4*q-4.9*q*q);}
+  blueBall.rotation.z=-(t-E.launch)*5;
+  const trip=smooth((t-E.paddle)/(E.pendulum-E.paddle));dropPaddle.rotation.z=-.45*trip;retainingPin.position.z=-1.6-.8*trip;
+  const paddleTip=vec([.55,0,0]).applyAxisAngle(vec([0,0,1]),dropPaddle.rotation.z).add(dropPaddle.position);
+  moveLink(releaseLink,paddleTip.toArray(),[23.04,1.77,-1.95-.8*trip]);
+  const pt=Math.max(0,t-E.pendulum);pendulum.rotation.z=-.8*Math.cos(Math.PI*Math.min(pt,2.1)/2.1);
+  if(pt>2.1)pendulum.rotation.z=.8*Math.cos((pt-2.1)*2.2)*Math.exp(-(pt-2.1)*.85);
+  blocks.forEach(({mesh:b,start,row,col},i)=>{
+    const u=clamp((t-E.wall)/.7);b.position.copy(start);b.rotation.set(0,0,0);
+    if(t>=E.wall){const direct=row===0&&col===1;b.position.x+=(blockLandings[i][0]-start.x)*u;b.position.z+=(blockLandings[i][1]-start.z)*u;
+      b.position.y=direct?start.y:Math.max(.21,start.y+1.3*u-2.3*u*u);if(!direct){b.rotation.set(.6*u*(col-1),.35*u*row,-1.1*u);const extent=Math.abs(vec([.2,0,0]).applyQuaternion(b.quaternion).y)+Math.abs(vec([0,.2,0]).applyQuaternion(b.quaternion).y)+Math.abs(vec([0,0,.225]).applyQuaternion(b.quaternion).y);b.position.y=Math.max(b.position.y,.02+extent);}}
+  });
+  finaleTiles.forEach(({pivot,h,start},i)=>{const fall=smooth((t-start)/.40);pivot.rotation.z=-(i===tileCount-1?FINAL_REST:Math.acos(.11/.54))*fall;});
+  const theta=-finaleTiles.at(-1).pivot.rotation.z;let lo=0,hi=.16;
+  for(let i=0;i<24;i++){const phi=(lo+hi)/2,c=vec([-.36,.05,0]).applyAxisAngle(vec([0,0,1]),phi).add(finalLever.position),gap=(16.8-c.x)*Math.cos(theta)-(c.y-.065)*Math.sin(theta)-.055;if(gap<0)lo=phi;else hi=phi;}
+  finalLever.rotation.z=(lo+hi)/2;
+  const f=smooth((t-E.flag)/1.7);flag.position.y=.7+2.45*f;counterweight.position.y=3.25-2.45*f;
+  moveLink(flagRope,[15.43,3.8,4.2],[15.43,flag.position.y,4.2]);moveLink(weightRope,[15.15,3.8,4.2],counterweight.position.toArray());
+  moveLink(flagLatch,[16,.18,4.2],[15.15,3.25,4.2+.3*smooth((t-E.flag)/.2)]);
+  bell.rotation.z=t>E.bell?.3*Math.sin((t-E.bell)*18)*Math.exp(-(t-E.bell)*1.4):0;
+  const stages=[[0,'01 / Ball on rails'],[3.3,'02 / First domino cascade'],[SIM.trigger,'03 / Paddle releases striker'],[SIM.strike,'04 / Gong opens the gate'],[E.roll,'05 / Spiral descent'],[E.cup,'06 / Seesaw pulls the catch'],[E.launch,'07 / Catapult → receiving funnel'],[E.paddle,'08 / Paddle withdraws retaining pin'],[E.pendulum,'09 / Pendulum released'],[E.wall,'10 / Wooden wall collapses'],[E.domino,'11 / Domino return'],[E.flag,'12 / Chain complete']];
+  document.querySelector('#stage').textContent=stages.filter(s=>t>=s[0]).at(-1)[1];
+}
 const trackLen=track.getLength();
 function poseAt(t){
-  t=clamp(t,0,15);
+  t=clamp(t,0,DURATION);
   if(t<=3.3){const u=clamp(Math.pow(t/3.3,1.25));ball.position.copy(track.getPointAt(u));ball.rotation.z=-u*trackLen/.38;}
   else{const q=t-3.3;ball.position.set(-.46-Math.min(.9,q*.35),Math.max(.385,1.05-1.6*q*q),Math.min(1.25,q*.37));ball.rotation.z=-trackLen/.38+q;}
   const f=t*SIM.fps,a=Math.min(SIM.frames.length-1,Math.floor(f)),b=Math.min(a+1,SIM.frames.length-1),fr=f-a;
@@ -220,16 +396,17 @@ function poseAt(t){
   const q=Math.max(0,t-SIM.strike), impact=t>=SIM.strike?Math.exp(-q*2.8):0;
   gongMat.emissiveIntensity=impact*.8; flare.intensity=impact*24;
   waves.forEach((o,i)=>{const p=(t-SIM.strike-i*.18);o.scale.setScalar(1+Math.max(0,p)*1.15);o.material.opacity=p>=0&&p<1.4?.38*(1-p/1.4):0;});
+  poseExtension(t);
 }
 
 let time=0, playing=true, speed=1;
 const slider=document.querySelector('#time'), tlabel=document.querySelector('#tlabel'), playBtn=document.querySelector('#play');
-slider.addEventListener('input',()=>{time=parseFloat(slider.value); poseAt(time);});
+slider.addEventListener('input',()=>{playing=false;playBtn.textContent='Play';time=parseFloat(slider.value);poseAt(time);});
 document.querySelector('#speed').addEventListener('change',e=>speed=parseFloat(e.target.value));
 playBtn.addEventListener('click',()=>{playing=!playing; playBtn.textContent=playing?'Pause':'Play';});
-document.querySelectorAll('#bar [data-t]').forEach(b=>b.addEventListener('click',()=>{time=parseFloat(b.dataset.t); poseAt(time);}));
+document.querySelectorAll('#bar [data-t]').forEach(b=>b.addEventListener('click',()=>{playing=false;playBtn.textContent='Play';time=parseFloat(b.dataset.t);slider.value=time;poseAt(time);}));
 document.querySelector('#spin').addEventListener('change',e=>controls.autoRotate=e.target.checked);
-const views={overview:{p:[2.5,6.5,13.5],t:[2.2,1,0]},ball:{p:[-4.5,3.4,5.2],t:[-4,1.6,0]},dominoes:{p:[4.5,2.6,5.4],t:[4.5,.8,0]},trigger:{p:[8.2,2.6,5.6],t:[11,1.1,.8]}};
+const views={overview:{p:[13,23,37],t:[10.5,1,.7]},ball:{p:[-4.5,3.4,5.2],t:[-4,1.6,0]},dominoes:{p:[4.5,2.6,5.4],t:[4.5,.8,0]},trigger:{p:[8.2,2.6,5.6],t:[11,1.1,.8]},spiral:{p:[18.7,7.8,10.5],t:[15.5,2,0]},launch:{p:[20,5.8,7],t:[20,1.2,-1.6]},pendulum:{p:[29.5,6,6],t:[25.5,1.7,-1.3]},finale:{p:[23,12,19],t:[21.8,1,2.3]}};
 document.querySelectorAll('#presets [data-view]').forEach(b=>b.addEventListener('click',()=>{const v=views[b.dataset.view];camera.position.set(...v.p);controls.target.set(...v.t);}));
 document.querySelector('#export').addEventListener('click',()=>{
   poseAt(time); scene.updateMatrixWorld(true);
@@ -242,11 +419,24 @@ document.querySelector('#export').addEventListener('click',()=>{
 
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight,false);}
 addEventListener('resize',resize); resize();
+let soundContext=null,soundOn=false;
+document.querySelector('#sound').addEventListener('click',async()=>{
+  soundOn=!soundOn;if(soundOn){soundContext??=new AudioContext();await soundContext.resume();}
+  document.querySelector('#sound').textContent=soundOn?'Sound on':'Sound off';
+});
+function chime(frequency,duration,volume){
+  if(!soundOn||!soundContext)return;
+  for(const [ratio,gain] of [[1,1],[2.76,.35],[5.4,.12]]){
+    const o=soundContext.createOscillator(),g=soundContext.createGain(),now=soundContext.currentTime;
+    o.frequency.value=frequency*ratio;g.gain.setValueAtTime(volume*gain,now);g.gain.exponentialRampToValueAtTime(.0001,now+duration);o.connect(g).connect(soundContext.destination);o.start(now);o.stop(now+duration);
+  }
+}
+const soundEvents=[[SIM.strike,180,2.8,.12],[E.tip,450,.12,.05],[E.launch,600,.10,.04],[E.wall,95,.45,.08],[E.bell,880,1.8,.09],...finaleTiles.map(d=>[d.start,300,.045,.02])];
 let last=performance.now();
 function loop(now){
   requestAnimationFrame(loop);
   const dt=Math.min(.1,(now-last)/1000); last=now;
-  if(playing){time+=dt*speed; if(time>15) time=0; slider.value=time;}
+  if(playing){const previous=time;time+=dt*speed;for(const [at,f,d,v] of soundEvents)if(previous<at&&time>=at)chime(f,d,v);if(time>DURATION)time=0;slider.value=time;}
   poseAt(time);
   tlabel.textContent=time.toFixed(2)+' s';
   controls.update(); renderer.render(scene,camera);
