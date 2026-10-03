@@ -1,0 +1,471 @@
+{
+  "duration": 34,
+  "events": {
+    "gate": 7.638285238661737,
+    "roll": 8.088285238661737,
+    "cup": 15,
+    "tip": 16.2,
+    "launch": 16.85,
+    "land": 17.67,
+    "paddle": 18.9,
+    "pendulum": 19.2,
+    "wall": 20.289203865347776,
+    "domino": 20.989203865347775,
+    "flag": 27.849203865347775,
+    "bell": 28.523219929337714
+  },
+  "audio": [
+    {
+      "file": "roll.mp3",
+      "start": 0,
+      "duration": 3.3,
+      "volume": 0.52,
+      "fadeIn": 0.18,
+      "fadeOut": 0.35
+    },
+    {
+      "file": "click.mp3",
+      "start": 3.3,
+      "duration": 0.2,
+      "volume": 0.75,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 3.5042,
+      "duration": 0.2,
+      "volume": 0.75,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 3.7125,
+      "duration": 0.2,
+      "volume": 0.75,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 3.925,
+      "duration": 0.2,
+      "volume": 0.75,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 4.1375,
+      "duration": 0.2,
+      "volume": 0.75,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 4.3542,
+      "duration": 0.2,
+      "volume": 0.75,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 4.5708,
+      "duration": 0.2,
+      "volume": 0.75,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 4.7875,
+      "duration": 0.2,
+      "volume": 0.75,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 5.0042,
+      "duration": 0.2,
+      "volume": 0.75,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 5.2208,
+      "duration": 0.2,
+      "volume": 0.75,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 5.4375,
+      "duration": 0.2,
+      "volume": 0.75,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 5.6542,
+      "duration": 0.2,
+      "volume": 0.75,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 5.8708,
+      "duration": 0.2,
+      "volume": 0.75,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 6.0875,
+      "duration": 0.2,
+      "volume": 0.75,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 6.3042,
+      "duration": 0.2,
+      "volume": 0.75,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 6.5208,
+      "duration": 0.2,
+      "volume": 0.75,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 6.7375,
+      "duration": 0.2,
+      "volume": 0.75,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 6.9542,
+      "duration": 0.2,
+      "volume": 0.75,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 7.2549519053284035,
+      "duration": 0.2,
+      "volume": 0.4,
+      "offset": 0.022
+    },
+    {
+      "file": "gong-master.wav",
+      "start": 7.638285238661737,
+      "duration": 5,
+      "volume": 0.85,
+      "fadeOut": 1.2
+    },
+    {
+      "file": "roll.mp3",
+      "start": 8.088285238661737,
+      "duration": 6.9117147613382635,
+      "volume": 0.32,
+      "loop": true,
+      "fadeIn": 0.12,
+      "fadeOut": 0.25
+    },
+    {
+      "file": "click.mp3",
+      "start": 20.989203865347775,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 21.179203865347777,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 21.369203865347774,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 21.559203865347776,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 21.749203865347777,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 21.939203865347775,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 22.129203865347776,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 22.319203865347774,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 22.509203865347775,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 22.699203865347776,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 22.889203865347774,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 23.079203865347775,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 23.269203865347777,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 23.459203865347774,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 23.649203865347776,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 23.839203865347777,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 24.029203865347775,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 24.219203865347776,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 24.409203865347777,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 24.599203865347775,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 24.789203865347776,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 24.979203865347777,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 25.169203865347775,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 25.359203865347776,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 25.549203865347778,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 25.739203865347775,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 25.929203865347777,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 26.119203865347774,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 26.309203865347776,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 26.499203865347774,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 26.689203865347775,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 26.879203865347776,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 27.069203865347774,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 27.259203865347775,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "click.mp3",
+      "start": 27.449203865347776,
+      "duration": 0.2,
+      "volume": 0.55,
+      "offset": 0.022
+    },
+    {
+      "file": "chain-tone-0.wav",
+      "start": 16.2,
+      "duration": 0.12,
+      "volume": 1
+    },
+    {
+      "file": "chain-tone-1.wav",
+      "start": 16.85,
+      "duration": 0.1,
+      "volume": 1
+    },
+    {
+      "file": "chain-tone-2.wav",
+      "start": 20.289203865347776,
+      "duration": 0.45,
+      "volume": 1
+    },
+    {
+      "file": "chain-tone-3.wav",
+      "start": 28.523219929337714,
+      "duration": 1.8,
+      "volume": 1
+    }
+  ],
+  "tones": [
+    [
+      16.2,
+      450,
+      0.12,
+      0.05
+    ],
+    [
+      16.85,
+      600,
+      0.1,
+      0.04
+    ],
+    [
+      20.289203865347776,
+      95,
+      0.45,
+      0.08
+    ],
+    [
+      28.523219929337714,
+      880,
+      1.8,
+      0.09
+    ]
+  ]
+}
